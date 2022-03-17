@@ -1410,6 +1410,8 @@ pub struct JNINativeInterface_ {
         Option<unsafe extern "system" fn(env: *mut JNIEnv, buf: jobject) -> jlong>,
     pub GetObjectRefType:
         Option<unsafe extern "system" fn(env: *mut JNIEnv, obj: jobject) -> jobjectRefType>,
+    pub GetModule:
+        Option<unsafe extern "system" fn(env: *mut JNIEnv, clazz: jclass) -> jobject>,
 }
 
 impl Clone for JNINativeInterface_ {
