@@ -1,6 +1,9 @@
 #![doc(html_root_url="https://docs.rs/jni-sys/0.3.0")]
 #![allow(non_snake_case, non_camel_case_types)]
 
+extern crate libloading;
+
+use std::ffi::OsStr;
 use std::os::raw::c_void;
 use std::os::raw::c_char;
 
@@ -1508,12 +1511,91 @@ impl Clone for JNIInvokeInterface_ {
     }
 }
 
-extern "system" {
-    pub fn JNI_GetDefaultJavaVMInitArgs(args: *mut c_void) -> jint;
-    pub fn JNI_CreateJavaVM(
+pub struct JNIWrapper {
+    pub JNI_GetDefaultJavaVMInitArgs: Result<
+        unsafe extern "C" fn(args: *mut ::std::os::raw::c_void) -> jint,
+        ::libloading::Error,
+    >,
+    pub JNI_CreateJavaVM: Result<
+        unsafe extern "C" fn(
+            pvm: *mut *mut JavaVM,
+            penv: *mut *mut ::std::os::raw::c_void,
+            args: *mut ::std::os::raw::c_void,
+        ) -> jint,
+        ::libloading::Error,
+    >,
+    pub JNI_GetCreatedJavaVMs: Result<
+        unsafe extern "C" fn(arg1: *mut *mut JavaVM, arg2: jsize, arg3: *mut jsize) -> jint,
+        ::libloading::Error,
+    >,
+    pub JNI_OnLoad: Result<
+        unsafe extern "C" fn(vm: *mut JavaVM, reserved: *mut ::std::os::raw::c_void) -> jint,
+        ::libloading::Error,
+    >,
+    pub JNI_OnUnload: Result<
+        unsafe extern "C" fn(vm: *mut JavaVM, reserved: *mut ::std::os::raw::c_void),
+        ::libloading::Error,
+    >,
+}
+
+impl JNIWrapper {
+
+    pub unsafe fn new<P: AsRef<OsStr>>(path: P) -> Result<JNIWrapper, ::libloading::Error> {
+        let lib = ::libloading::Library::new(path)?;
+
+        let JNI_GetDefaultJavaVMInitArgs = lib.get(b"JNI_GetDefaultJavaVMInitArgs\0").map(|sym| *sym);
+        let JNI_CreateJavaVM = lib.get(b"JNI_CreateJavaVM\0").map(|sym| *sym);
+        let JNI_GetCreatedJavaVMs = lib.get(b"JNI_GetCreatedJavaVMs\0").map(|sym| *sym);
+        let JNI_OnLoad = lib.get(b"JNI_OnLoad\0").map(|sym| *sym);
+        let JNI_OnUnload = lib.get(b"JNI_OnUnload\0").map(|sym| *sym);
+
+        Ok(JNIWrapper {
+            JNI_GetDefaultJavaVMInitArgs,
+            JNI_CreateJavaVM,
+            JNI_GetCreatedJavaVMs,
+            JNI_OnLoad,
+            JNI_OnUnload
+        })
+    }
+
+    pub unsafe fn JNI_GetDefaultJavaVMInitArgs(
+        &self,
+        args: *mut c_void
+    ) -> jint {
+        (self.JNI_GetDefaultJavaVMInitArgs.as_ref().expect("Expected function, got error."))(args)
+    }
+
+    pub unsafe fn JNI_CreateJavaVM(
+        &self,
         pvm: *mut *mut JavaVM,
-        penv: *mut *mut c_void,
-        args: *mut c_void,
-    ) -> jint;
-    pub fn JNI_GetCreatedJavaVMs(vmBuf: *mut *mut JavaVM, bufLen: jsize, nVMs: *mut jsize) -> jint;
+        penv: *mut *mut ::std::os::raw::c_void,
+        args: *mut ::std::os::raw::c_void,
+    ) -> jint {
+        (self.JNI_CreateJavaVM.as_ref().expect("Expected function, got error."))(pvm, penv, args)
+    }
+
+    pub unsafe fn JNI_GetCreatedJavaVMs(
+        &self,
+        arg1: *mut *mut JavaVM,
+        arg2: jsize,
+        arg3: *mut jsize,
+    ) -> jint {
+        (self.JNI_GetCreatedJavaVMs.as_ref().expect("Expected function, got error."))(arg1, arg2, arg3)
+    }
+
+    pub unsafe fn JNI_OnLoad(
+        &self,
+        vm: *mut JavaVM,
+        reserved: *mut ::std::os::raw::c_void,
+    ) -> jint {
+        (self.JNI_OnLoad.as_ref().expect("Expected function, got error."))(vm, reserved)
+    }
+    pub unsafe fn JNI_OnUnload(
+        &self,
+        vm: *mut JavaVM,
+        reserved: *mut ::std::os::raw::c_void,
+    ) -> () {
+        (self.JNI_OnUnload.as_ref().expect("Expected function, got error."))(vm, reserved)
+    }
+
 }
