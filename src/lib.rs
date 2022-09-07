@@ -92,6 +92,7 @@ pub const JNI_VERSION_1_6: jint = 0x00010006;
 pub const JNI_VERSION_1_8: jint = 0x00010008;
 pub const JNI_VERSION_9: jint = 0x00090000;
 pub const JNI_VERSION_10: jint = 0x000a0000;
+pub const JNI_VERSION_19: jint = 0x00130000;
 
 #[repr(C)]
 #[derive(Copy)]
@@ -1415,6 +1416,7 @@ pub struct JNINativeInterface_ {
         Option<unsafe extern "system" fn(env: *mut JNIEnv, obj: jobject) -> jobjectRefType>,
     pub GetModule:
         Option<unsafe extern "system" fn(env: *mut JNIEnv, clazz: jclass) -> jobject>,
+    pub IsVirtualThread: Option<unsafe extern "system" fn(event: *mut JNIEnv, obj: jobject) -> jboolean>,
 }
 
 impl Clone for JNINativeInterface_ {
